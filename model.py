@@ -35,6 +35,7 @@ class YOLOv8Model(LabelStudioMLBase):
         original_width, original_height = image.size
         results = self.model.predict(image)
 
+        i = 0
         for result in results:
             for i, prediction in enumerate(result.boxes):
                 xyxy = prediction.xyxy[0].tolist()
