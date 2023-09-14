@@ -1,3 +1,5 @@
+import json
+
 from label_studio_ml.model import LabelStudioMLBase
 import requests, os
 from ultralytics import YOLO
@@ -16,12 +18,11 @@ class YOLOv8Model(LabelStudioMLBase):
         from_name, schema = list(self.parsed_label_config.items())[0]
         self.from_name = from_name
         self.to_name = schema['to_name'][0]
-        labels = self.parsed_label_config.get('label').get('labels')
-
-        self.name_to_label = {}
-        for label in labels:
-            name = label.split('-', 1)[1]
-            self.name_to_label[name] = label
+        self.id_to_label = {}
+        with open('categories.json') as f:
+            categories = json.loads(f.read()).get('categories')
+            for category in categories:
+                self.id_to_label[category.get('id')] = category.get('name')
 
         self.model = YOLO("best.pt")
 
@@ -33,7 +34,6 @@ class YOLOv8Model(LabelStudioMLBase):
 
         predictions = []
         score = 0
-
         header = {
             "Authorization": "Token " + LS_API_TOKEN}
         image = Image.open(BytesIO(requests.get(
@@ -60,7 +60,7 @@ class YOLOv8Model(LabelStudioMLBase):
                         "y": xyxy[1] / original_height * 100,
                         "width": (xyxy[2] - xyxy[0]) / original_width * 100,
                         "height": (xyxy[3] - xyxy[1]) / original_height * 100,
-                        "rectanglelabels": [self.name_to_label.get(self.model.names[int(prediction.cls.item())], '')]
+                        "rectanglelabels": [self.id_to_label.get(int(prediction.cls.item()), 'unknown')]
                     }
                 })
                 score += prediction.conf.item()
