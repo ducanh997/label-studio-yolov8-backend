@@ -1,35 +1,34 @@
-import os
 import argparse
-import logging
+import json
 import logging.config
+import os
 
 logging.config.dictConfig({
-  "version": 1,
-  "formatters": {
-    "standard": {
-      "format": "[%(asctime)s] [%(levelname)s] [%(name)s::%(funcName)s::%(lineno)d] %(message)s"
+    "version": 1,
+    "formatters": {
+        "standard": {
+            "format": "[%(asctime)s] [%(levelname)s] [%(name)s::%(funcName)s::%(lineno)d] %(message)s"
+        }
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "level": "DEBUG",
+            "stream": "ext://sys.stdout",
+            "formatter": "standard"
+        }
+    },
+    "root": {
+        "level": "ERROR",
+        "handlers": [
+            "console"
+        ],
+        "propagate": True
     }
-  },
-  "handlers": {
-    "console": {
-      "class": "logging.StreamHandler",
-      "level": "DEBUG",
-      "stream": "ext://sys.stdout",
-      "formatter": "standard"
-    }
-  },
-  "root": {
-    "level": "ERROR",
-    "handlers": [
-      "console"
-    ],
-    "propagate": True
-  }
 })
 
 from label_studio_ml.api import init_app
 from model import YOLOv8Model
-
 
 _DEFAULT_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'config.json')
 
@@ -73,12 +72,14 @@ if __name__ == "__main__":
     if args.log_level:
         logging.root.setLevel(args.log_level)
 
+
     def isfloat(value):
         try:
             float(value)
             return True
         except ValueError:
             return False
+
 
     def parse_kwargs():
         param = dict()
@@ -95,6 +96,7 @@ if __name__ == "__main__":
                 param[k] = v
         return param
 
+
     kwargs = get_kwargs_from_config()
 
     if args.kwargs:
@@ -105,7 +107,7 @@ if __name__ == "__main__":
         model = YOLOv8Model(**kwargs)
 
     app = init_app(
-        model_class=YOLOModel,
+        model_class=YOLOv8Model,
         model_dir=os.environ.get('MODEL_DIR', args.model_dir),
         redis_queue=os.environ.get('RQ_QUEUE_NAME', 'default'),
         redis_host=os.environ.get('REDIS_HOST', 'localhost'),

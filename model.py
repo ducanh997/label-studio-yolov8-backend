@@ -7,6 +7,7 @@ from io import BytesIO
 LS_URL = os.environ['LABEL_STUDIO_BASEURL']
 LS_API_TOKEN = os.environ['LABEL_STUDIO_API_TOKEN']
 
+
 class YOLOv8Model(LabelStudioMLBase):
     def __init__(self, **kwargs):
         # Call base class constructor
@@ -15,7 +16,7 @@ class YOLOv8Model(LabelStudioMLBase):
         from_name, schema = list(self.parsed_label_config.items())[0]
         self.from_name = from_name
         self.to_name = schema['to_name'][0]
-        self.labels = ['Edible', 'Inedible', 'Visual defects']
+        self.labels = self.parsed_label_config.get('label').get('labels')
         self.model = YOLO("best.pt")
 
     def predict(self, tasks, **kwargs):
@@ -33,7 +34,7 @@ class YOLOv8Model(LabelStudioMLBase):
             LS_URL + task['data']['image'], headers=header).content))
         original_width, original_height = image.size
         results = self.model.predict(image)
-        
+
         for result in results:
             for i, prediction in enumerate(result.boxes):
                 xyxy = prediction.xyxy[0].tolist()
@@ -48,7 +49,7 @@ class YOLOv8Model(LabelStudioMLBase):
                     "image_rotation": 0,
                     "value": {
                         "rotation": 0,
-                        "x": xyxy[0] / original_width * 100, 
+                        "x": xyxy[0] / original_width * 100,
                         "y": xyxy[1] / original_height * 100,
                         "width": (xyxy[2] - xyxy[0]) / original_width * 100,
                         "height": (xyxy[3] - xyxy[1]) / original_height * 100,
@@ -56,7 +57,7 @@ class YOLOv8Model(LabelStudioMLBase):
                     }
                 })
                 score += prediction.conf.item()
-            
+
         return [{
             "result": predictions,
             "score": score / (i + 1),
