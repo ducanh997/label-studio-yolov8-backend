@@ -16,7 +16,13 @@ class YOLOv8Model(LabelStudioMLBase):
         from_name, schema = list(self.parsed_label_config.items())[0]
         self.from_name = from_name
         self.to_name = schema['to_name'][0]
-        self.labels = self.parsed_label_config.get('label').get('labels')
+        labels = self.parsed_label_config.get('label').get('labels')
+
+        self.name_to_label = {}
+        for label in labels:
+            name = label.split('-', 1)[1]
+            self.name_to_label[name] = label
+
         self.model = YOLO("best.pt")
 
     def predict(self, tasks, **kwargs):
@@ -37,7 +43,7 @@ class YOLOv8Model(LabelStudioMLBase):
 
         i = 0
         for result in results:
-            for i, prediction in enumerate(result.boxes):
+            for i, prediction in enumerate(result.boxes.cpu().numpy()):
                 xyxy = prediction.xyxy[0].tolist()
                 predictions.append({
                     "id": str(i),
@@ -54,7 +60,7 @@ class YOLOv8Model(LabelStudioMLBase):
                         "y": xyxy[1] / original_height * 100,
                         "width": (xyxy[2] - xyxy[0]) / original_width * 100,
                         "height": (xyxy[3] - xyxy[1]) / original_height * 100,
-                        "rectanglelabels": [self.labels[int(prediction.cls.item())]]
+                        "rectanglelabels": [self.name_to_label.get(self.model.names[int(prediction.cls.item())], '')]
                     }
                 })
                 score += prediction.conf.item()
