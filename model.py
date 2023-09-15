@@ -37,7 +37,7 @@ class YOLOv8Model(LabelStudioMLBase):
         header = {
             "Authorization": "Token " + LS_API_TOKEN}
         image = Image.open(BytesIO(requests.get(
-            LS_URL + task['data']['image'], headers=header).content))
+            LS_URL + task['data']['url'], headers=header).content))
         original_width, original_height = image.size
         results = self.model.predict(image)
 
