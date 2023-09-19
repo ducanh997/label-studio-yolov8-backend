@@ -1,5 +1,6 @@
 import json
 
+import torch
 from label_studio_ml.model import LabelStudioMLBase
 import requests, os
 from ultralytics import YOLO
@@ -24,7 +25,8 @@ class YOLOv8Model(LabelStudioMLBase):
             for category in categories:
                 self.id_to_label[category.get('id')] = category.get('name')
 
-        self.model = YOLO("best.pt")
+        device: str = 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.model = YOLO("best.pt").to(device)
 
     def predict(self, tasks, **kwargs):
         """ This is where inference happens: model returns 
