@@ -41,7 +41,7 @@ class YOLOv8Model(LabelStudioMLBase):
         image = Image.open(BytesIO(requests.get(
             LS_URL + task['data']['url'], headers=header).content))
         original_width, original_height = image.size
-        results = self.model.predict(image)
+        results = self.model.predict(image, iou=0.5)
 
         i = 0
         for result in results:
