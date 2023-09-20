@@ -28,3 +28,11 @@ services:
     volumes:
       - "./data/server:/data"
       - "./logs:/tmp"
+      - "/nangdv/logo_train/runs/detect/train/weights/best.pt:/app/best.pt"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
