@@ -62,7 +62,7 @@ class YOLOv8Model(LabelStudioMLBase):
                         "y": xyxy[1] / original_height * 100,
                         "width": (xyxy[2] - xyxy[0]) / original_width * 100,
                         "height": (xyxy[3] - xyxy[1]) / original_height * 100,
-                        "rectanglelabels": [self.id_to_label.get(int(prediction.cls.item()), 'unknown')]
+                        "rectanglelabels": [self.id_to_label.get(str(int(prediction.cls.item())), 'unknown')]
                     }
                 })
                 score += prediction.conf.item()
