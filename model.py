@@ -1,5 +1,4 @@
 import json
-
 import torch
 from label_studio_ml.model import LabelStudioMLBase
 import requests, os
@@ -20,12 +19,12 @@ class YOLOv8Model(LabelStudioMLBase):
         self.from_name = from_name
         self.to_name = schema['to_name'][0]
         self.id_to_label = {}
-        with open('categories.json') as f:
+        with open('notes.json') as f:
             categories = json.loads(f.read()).get('categories')
             for category in categories:
                 self.id_to_label[category.get('id')] = category.get('name')
 
-        device: str = 'cuda' if torch.cuda.is_available() else 'cpu'
+        device: str = 'cpu'
         self.model = YOLO("best.pt").to(device)
 
     def predict(self, tasks, **kwargs):
@@ -38,6 +37,8 @@ class YOLOv8Model(LabelStudioMLBase):
         score = 0
         header = {
             "Authorization": "Token " + LS_API_TOKEN}
+        print(LS_URL)
+        print(task['data']['url'])
         image = Image.open(BytesIO(requests.get(
             LS_URL + task['data']['url'], headers=header).content))
         original_width, original_height = image.size
@@ -66,6 +67,7 @@ class YOLOv8Model(LabelStudioMLBase):
                     }
                 })
                 score += prediction.conf.item()
+                print(f"{int(prediction.cls.item())} - {self.id_to_label.get(int(prediction.cls.item()), 'unknown')}")
 
         return [{
             "result": predictions,
