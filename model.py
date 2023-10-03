@@ -57,7 +57,8 @@ class YOLOv8Model(LabelStudioMLBase):
                         "y": xyxy[1] / original_height * 100,
                         "width": (xyxy[2] - xyxy[0]) / original_width * 100,
                         "height": (xyxy[3] - xyxy[1]) / original_height * 100,
-                        "rectanglelabels": [self.id_to_label.get(str(int(prediction.cls.item())), 'unknown')]
+                        "rectanglelabels": [self.id_to_label.get(str(int(prediction.cls.item())), 'unknown')],
+                        "xyxy": xyxy
                     }
                 })
                 print(f"{int(prediction.cls.item())} - {self.id_to_label.get(int(prediction.cls.item()), 'unknown')}")
@@ -65,20 +66,13 @@ class YOLOv8Model(LabelStudioMLBase):
         return predictions
 
     def _box_overlap(self, box_1, box_2):
-        x1, y1, w1, h1 = box_1
-        x2, y2, w2, h2 = box_2
+        if box_1[2] <= box_2[0] or box_2[2] <= box_1[0]:
+            return False
 
-        left1 = x1 - w1 / 2
-        right1 = x1 + w1 / 2
-        top1 = y1 - h1 / 2
-        bottom1 = y1 + h1 / 2
+        if box_1[3] <= box_2[1] or box_2[3] <= box_1[1]:
+            return False
 
-        left2 = x2 - w2 / 2
-        right2 = x2 + w2 / 2
-        top2 = y2 - h2 / 2
-        bottom2 = y2 + h2 / 2
-
-        return not (left1 >= right2 or right1 <= left2 or top1 >= bottom2 or bottom1 <= top2)
+        return True
 
     def predict(self, tasks, **kwargs):
         """ This is where inference happens: model returns
@@ -95,14 +89,8 @@ class YOLOv8Model(LabelStudioMLBase):
         duplicated_prediction = set([])
         for prediction in predictions:
             for prediction_updated in predictions_updated:
-                box = (
-                    prediction['value']['x'], prediction['value']['y'],
-                    prediction['value']['width'], prediction['value']['height']
-                )
-                box_updated = (
-                    prediction_updated['value']['x'], prediction_updated['value']['y'],
-                    prediction_updated['value']['width'], prediction_updated['value']['height']
-                )
+                box = prediction['value']['xyxy']
+                box_updated = prediction_updated['value']['xyxy']
 
                 if self._box_overlap(box, box_updated) \
                         and prediction['value']['rectanglelabels'] == prediction_updated['value']['rectanglelabels']:
