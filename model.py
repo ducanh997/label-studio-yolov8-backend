@@ -25,7 +25,7 @@ class YOLOv8Model(LabelStudioMLBase):
                 self.id_to_label[category.get('id')] = category.get('name')
 
         device: str = 'cpu'
-        self.model = YOLO("best.pt").to(device)
+        self.model = YOLO(os.getenv('MODEL')).to(device)
 
     def predict(self, tasks, **kwargs):
         """ This is where inference happens: model returns 
