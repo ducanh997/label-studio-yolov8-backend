@@ -64,6 +64,22 @@ class YOLOv8Model(LabelStudioMLBase):
 
         return predictions
 
+    def _box_overlap(self, box_1, box_2):
+        x1, y1, w1, h1 = box_1
+        x2, y2, w2, h2 = box_2
+
+        left1 = x1 - w1 / 2
+        right1 = x1 + w1 / 2
+        top1 = y1 - h1 / 2
+        bottom1 = y1 + h1 / 2
+
+        left2 = x2 - w2 / 2
+        right2 = x2 + w2 / 2
+        top2 = y2 - h2 / 2
+        bottom2 = y2 + h2 / 2
+
+        return not (left1 >= right2 or right1 <= left2 or top1 >= bottom2 or bottom1 <= top2)
+
     def predict(self, tasks, **kwargs):
         """ This is where inference happens: model returns
             the list of predictions based on input list of tasks
@@ -76,8 +92,27 @@ class YOLOv8Model(LabelStudioMLBase):
         predictions = self._predict('current', image)
         predictions_updated = self._predict('updated', image)
 
+        duplicated = set([])
+        for prediction in predictions:
+            for prediction_updated in predictions_updated:
+                box = (
+                    prediction['value']['x'], prediction['value']['y'],
+                    prediction['value']['width'], prediction['value']['height']
+                )
+                box_updated = (
+                    prediction_updated['value']['x'], prediction_updated['value']['y'],
+                    prediction_updated['value']['width'], prediction_updated['value']['height']
+                )
+
+                if self._box_overlap(box, box_updated):
+                    if prediction['score'] > prediction_updated['score']:
+                        duplicated.add(prediction_updated['id'])
+                    else:
+                        duplicated.add(prediction['id'])
+
         return [{
-            "result": predictions + predictions_updated,
+            "result": [prediction for prediction in predictions + predictions_updated if
+                       prediction['id'] not in duplicated],
             "score": 1,
             "model_version": 'v0',
         }]
