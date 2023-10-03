@@ -72,5 +72,5 @@ class YOLOv8Model(LabelStudioMLBase):
         return [{
             "result": predictions,
             "score": score / (i + 1),
-            "model_version": "v8n",  # all predictions will be differentiated by model version
+            "model_version": os.getenv('MODEL'),  # all predictions will be differentiated by model version
         }]
