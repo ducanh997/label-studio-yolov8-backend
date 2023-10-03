@@ -1,10 +1,10 @@
 import json
-import torch
-from label_studio_ml.model import LabelStudioMLBase
-import requests, os
-from ultralytics import YOLO
-from PIL import Image
 from io import BytesIO
+import os
+import requests
+from PIL import Image
+from label_studio_ml.model import LabelStudioMLBase
+from ultralytics import YOLO
 
 LS_URL = os.environ['LABEL_STUDIO_BASEURL']
 LS_API_TOKEN = os.environ['LABEL_STUDIO_API_TOKEN']
@@ -25,31 +25,25 @@ class YOLOv8Model(LabelStudioMLBase):
                 self.id_to_label[category.get('id')] = category.get('name')
 
         device: str = 'cpu'
-        self.model = YOLO(os.getenv('MODEL')).to(device)
+        self.model = YOLO('best.pt').to(device)
+        self.model_updated = YOLO('best_updated.pt').to(device)
 
-    def predict(self, tasks, **kwargs):
-        """ This is where inference happens: model returns 
-            the list of predictions based on input list of tasks 
-        """
-        task = tasks[0]
+    def _predict(self, model_type, image):
+        if model_type == 'current':
+            model = self.model
+        elif model_type == 'updated':
+            model = self.model_updated
+        else:
+            raise Exception('Invalid model type')
 
-        predictions = []
-        score = 0
-        header = {
-            "Authorization": "Token " + LS_API_TOKEN}
-        print(LS_URL)
-        print(task['data']['url'])
-        image = Image.open(BytesIO(requests.get(
-            LS_URL + task['data']['url'], headers=header).content))
         original_width, original_height = image.size
-        results = self.model.predict(image, iou=0, agnostic_nms=True)
-
-        i = 0
+        results = model.predict(image, iou=0, agnostic_nms=True)
+        predictions = []
         for result in results:
             for i, prediction in enumerate(result.boxes.cpu().numpy()):
                 xyxy = prediction.xyxy[0].tolist()
                 predictions.append({
-                    "id": str(i),
+                    "id": model_type + '_' + str(i),
                     "from_name": self.from_name,
                     "to_name": self.to_name,
                     "type": "rectanglelabels",
@@ -66,11 +60,24 @@ class YOLOv8Model(LabelStudioMLBase):
                         "rectanglelabels": [self.id_to_label.get(str(int(prediction.cls.item())), 'unknown')]
                     }
                 })
-                score += prediction.conf.item()
                 print(f"{int(prediction.cls.item())} - {self.id_to_label.get(int(prediction.cls.item()), 'unknown')}")
 
+        return predictions
+
+    def predict(self, tasks, **kwargs):
+        """ This is where inference happens: model returns
+            the list of predictions based on input list of tasks
+        """
+        task = tasks[0]
+
+        header = {"Authorization": "Token " + LS_API_TOKEN}
+        image = Image.open(BytesIO(requests.get(LS_URL + task['data']['url'], headers=header).content))
+
+        predictions = self._predict('current', image)
+        predictions_updated = self._predict('updated', image)
+
         return [{
-            "result": predictions,
-            "score": score / (i + 1),
-            "model_version": os.getenv('MODEL').replace('.pt', ''),
+            "result": predictions + predictions_updated,
+            "score": 1,
+            "model_version": 'v0',
         }]
