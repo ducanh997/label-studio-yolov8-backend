@@ -9,18 +9,21 @@ services:
       - "./data/redis:/data"
     expose:
       - 6379
+    restart: always
+
   server:
     container_name: label-studio-ml
     build: .
     env_file:
       - .env
     environment:
-      - RQ_QUEUE_NAME=default
+      - RQ_QUEUE_NAME=default-1
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - LABEL_STUDIO_USE_REDIS=true
+      - MODEL=best.pt
     ports:
-      - 9090:9090
+      - 9091:9090
     depends_on:
       - redis
     links:
@@ -28,10 +31,26 @@ services:
     volumes:
       - "./data/server:/data"
       - "./logs:/tmp"
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+    restart: always
+
+  server_updated:
+    container_name: label-studio-ml-updated
+    build: .
+    env_file:
+      - .env
+    environment:
+      - RQ_QUEUE_NAME=default-2
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - LABEL_STUDIO_USE_REDIS=true
+      - MODEL=best_updated.pt
+    ports:
+      - 9092:9090
+    depends_on:
+      - redis
+    links:
+      - redis
+    volumes:
+      - "./data/server:/data"
+      - "./logs:/tmp"
+    restart: always
