@@ -92,7 +92,7 @@ class YOLOv8Model(LabelStudioMLBase):
         predictions = self._predict('current', image)
         predictions_updated = self._predict('updated', image)
 
-        duplicated = set([])
+        duplicated_prediction = set([])
         for prediction in predictions:
             for prediction_updated in predictions_updated:
                 box = (
@@ -104,15 +104,17 @@ class YOLOv8Model(LabelStudioMLBase):
                     prediction_updated['value']['width'], prediction_updated['value']['height']
                 )
 
-                if self._box_overlap(box, box_updated):
+                if self._box_overlap(box, box_updated) \
+                        and prediction['value']['rectanglelabels'] == prediction_updated['value']['rectanglelabels']:
+
                     if prediction['score'] > prediction_updated['score']:
-                        duplicated.add(prediction_updated['id'])
+                        duplicated_prediction.add(prediction_updated['id'])
                     else:
-                        duplicated.add(prediction['id'])
+                        duplicated_prediction.add(prediction['id'])
 
         return [{
             "result": [prediction for prediction in predictions + predictions_updated if
-                       prediction['id'] not in duplicated],
+                       prediction['id'] not in duplicated_prediction],
             "score": 1,
             "model_version": 'v0',
         }]
