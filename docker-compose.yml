@@ -21,9 +21,8 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - LABEL_STUDIO_USE_REDIS=true
-      - MODEL=best.pt
     ports:
-      - 9091:9090
+      - "9091:9090"
     depends_on:
       - redis
     links:
