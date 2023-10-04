@@ -92,9 +92,7 @@ class YOLOv8Model(LabelStudioMLBase):
                 box = prediction['value']['xyxy']
                 box_updated = prediction_updated['value']['xyxy']
 
-                if self._box_overlap(box, box_updated) \
-                        and prediction['value']['rectanglelabels'] == prediction_updated['value']['rectanglelabels']:
-
+                if self._box_overlap(box, box_updated):
                     if prediction['score'] > prediction_updated['score']:
                         duplicated_prediction.add(prediction_updated['id'])
                     else:
